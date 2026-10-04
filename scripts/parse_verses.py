@@ -33,19 +33,19 @@ def split_books(t, titles):
     return out
 
 VM = re.compile(r'(?:(?<=\s)|^)(\d{1,3})(?:\s+|(?=[“‘"\'(\[⌈<†]))(?=\S)')
-def verses(body):
+def verses(body, start=1):
     """Глава = ред само с число, равно на предходната+1. Стих = вграден ' N ',
     строго последователен. Ред с друго число е част от текста (пренесен номер на стих)."""
-    ch, buf, chunks = 0, [], []
+    ch, buf, chunks = start - 1, [], []
     for line in body.split('\n'):
         m = re.fullmatch(r'\s*(\d{1,3})\s*', line)
         if m and int(m.group(1)) == ch + 1:
-            if ch: chunks.append((ch, ' '.join(buf)))
+            if ch >= start: chunks.append((ch, ' '.join(buf)))
             ch, buf = ch + 1, []
-        elif ch:
+        elif ch >= start:
             if m: line = m.group(1) + ' '    # номер на стих, останал сам на ред
             buf.append(line.strip())
-    if ch: chunks.append((ch, ' '.join(buf)))
+    if ch >= start: chunks.append((ch, ' '.join(buf)))
     res = []
     for ch, txt in chunks:
         txt = re.sub(r'\s+', ' ', txt).strip()
@@ -66,7 +66,9 @@ def main(src, dst):
     n = collections.Counter()
     with open(dst, 'w', encoding='utf-8') as f:
         for bi, (title, body) in enumerate(split_books(t, titles)):
-            for ch, v, tx in verses(body):
+            if title == 'Glossary': continue
+            # Псалом 151 е номериран като глава 151, не 1
+            for ch, v, tx in verses(body, 151 if title == 'Psalm 151' else 1):
                 f.write(json.dumps({'id': f'{bi:02d}:{ch}:{v}', 'book': title,
                                     'ch': ch, 'v': v, 'text': tx}, ensure_ascii=False) + '\n')
                 n[title] += 1
