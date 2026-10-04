@@ -1,0 +1,7 @@
+*.jsonl
+*.pdf
+*.PDF
+eob.txt
+data/
+.wrangler/
+.dev.vars
